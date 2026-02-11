@@ -98,12 +98,15 @@
   <button class="btn-primary" onclick="saveProject()">Save</button>
   <button class="btn-secondary" onclick="closeForm()">Cancel</button>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-const supabase = supabaseJs.createClient(
+  <script>
+const supabase = supabase.createClient(
   "https://qybnvniuifdbxyhyjarn.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
 );
+</script>
+
 
 let editId = null;
 
