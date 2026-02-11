@@ -100,6 +100,13 @@ window.addEventListener("load", function () {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
   );
 
+  function formatPeso(value) {
+    return "₱" + Number(value || 0).toLocaleString("en-PH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
   let currentRole = null;
   let editId = null;
 
@@ -147,7 +154,6 @@ window.addEventListener("load", function () {
   };
 
   window.saveProject = async function () {
-
     if (!pName.value.trim()) {
       alert("Project name is required");
       return;
@@ -259,10 +265,12 @@ window.addEventListener("load", function () {
       let expenseHTML = "";
 
       expenses?.forEach(e => {
-        expensesTotal += Number(e.amount);
+        const amount = Number(e.amount) || 0;
+        expensesTotal += amount;
+
         expenseHTML += `
           <div>
-            • ${e.category || "Uncategorized"} - ${e.amount}
+            • ${e.category || "Uncategorized"} - ${formatPeso(amount)}
             ${currentRole === "expediter"
               ? `<button onclick="deleteExpense('${e.id}')">Delete</button>`
               : ""}
@@ -285,9 +293,9 @@ window.addEventListener("load", function () {
           Target: ${p.target || "-"}<br>
           Status: ${p.status || "-"}<br><br>
 
-          Revenue: ${revenue}<br>
-          Total Expenses: ${expensesTotal}<br>
-          Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${profit}</span><br>
+          Revenue: ${formatPeso(revenue)}<br>
+          Total Expenses: ${formatPeso(expensesTotal)}<br>
+          Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${formatPeso(profit)}</span><br>
           Margin: <span class="${margin < 0 ? 'negative' : 'positive'}">${margin}%</span>
           <hr>
 
@@ -324,9 +332,9 @@ window.addEventListener("load", function () {
       ceoSummary.innerHTML = `
         <div class="card">
           <h3>Company Overview</h3>
-          Total Revenue: ${grandRevenue}<br>
-          Total Expenses: ${grandExpenses}<br>
-          Net Profit: <span class="${grandProfit < 0 ? 'negative' : 'positive'}">${grandProfit}</span><br>
+          Total Revenue: ${formatPeso(grandRevenue)}<br>
+          Total Expenses: ${formatPeso(grandExpenses)}<br>
+          Net Profit: <span class="${grandProfit < 0 ? 'negative' : 'positive'}">${formatPeso(grandProfit)}</span><br>
           Overall Margin: <span class="${overallMargin < 0 ? 'negative' : 'positive'}">${overallMargin}%</span>
         </div>
       `;
