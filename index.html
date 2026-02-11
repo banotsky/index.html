@@ -1,262 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
   <title>Project Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f4f7;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 { margin: 0 0 10px; }
-    button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .btn-primary { background: #0d6efd; color: #fff; }
-    .btn-danger { background: #dc3545; color: #fff; }
-    .btn-secondary { background: #6c757d; color: #fff; }
-    .card {
-      background: #fff;
-      border-radius: 6px;
-      padding: 16px;
-      margin-bottom: 14px;
-      border-left: 6px solid #0d6efd;
-    }
-    .hidden { display: none; }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-    }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
+    body { font-family: Arial; background:#f2f4f7; padding:20px; }
+    .hidden { display:none; }
+    .card { background:#fff; padding:15px; margin-bottom:10px; border-left:5px solid #0d6efd; }
+    button { padding:8px 12px; margin:5px 0; }
+    input { width:100%; padding:6px; margin-bottom:8px; }
   </style>
 </head>
-
 <body>
 
-<!-- LOGIN -->
 <div id="login">
-  <h1>Login</h1>
+  <h2>Login</h2>
   <select id="role">
     <option value="ceo">CEO</option>
     <option value="manager">Manager</option>
     <option value="expediter">Expediter</option>
   </select>
-  <button class="btn-primary" onclick="login()">Login</button>
+  <button onclick="login()">Login</button>
 </div>
 
-<!-- CEO -->
 <div id="ceo" class="hidden">
-  <div class="topbar">
-    <h1>CEO Dashboard</h1>
-    <button class="btn-secondary" onclick="logout()">Logout</button>
-  </div>
-  <p id="noProjectsMessage" class="hidden" style="color:red">No Available Projects.</p>
+  <h2>CEO Dashboard</h2>
+  <button onclick="logout()">Logout</button>
   <div id="ceoProjects"></div>
 </div>
 
-<!-- MANAGER -->
 <div id="manager" class="hidden">
-  <div class="topbar">
-    <h1>Manager Dashboard</h1>
-    <button class="btn-secondary" onclick="logout()">Logout</button>
-  </div>
+  <h2>Manager Dashboard</h2>
+  <button onclick="logout()">Logout</button>
   <div id="managerProjects"></div>
-  <button class="btn-primary" onclick="openCreate()">Create Project</button>
+  <button onclick="showForm()">Create Project</button>
 </div>
 
-<!-- EXPEDITER -->
 <div id="expediter" class="hidden">
-  <div class="topbar">
-    <h1>Expediter Dashboard</h1>
-    <button class="btn-secondary" onclick="logout()">Logout</button>
-  </div>
+  <h2>Expediter Dashboard</h2>
+  <button onclick="logout()">Logout</button>
   <div id="expediterProjects"></div>
 </div>
 
-<!-- PROJECT FORM -->
-<div id="projectForm" class="hidden">
-  <h2 id="formTitle">Create Project</h2>
-  <input id="pName" placeholder="Project Name (required)" />
+<div id="form" class="hidden">
+  <h3>Create Project</h3>
+  <input id="pName" placeholder="Project Name" />
   <input id="pLocation" placeholder="Location" />
   <input id="pBudget" type="number" placeholder="Budget" />
   <input id="pStart" type="date" />
   <input id="pTarget" type="date" />
   <input id="pStatus" placeholder="Status" />
-  <button class="btn-primary" onclick="saveProject()">Save</button>
-  <button class="btn-secondary" onclick="closeForm()">Cancel</button>
+  <button onclick="saveProject()">Save</button>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script>
-const supabase = supabase.createClient(
+<script>
+const supabase = window.supabase.createClient(
   "https://qybnvniuifdbxyhyjarn.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
 );
-</script>
-
-
-let editId = null;
 
 function login() {
-  localStorage.setItem("role", role.value);
+  localStorage.setItem("role", document.getElementById("role").value);
   render();
 }
+
 function logout() {
   localStorage.removeItem("role");
   location.reload();
 }
 
-async function getProjects() {
-  const { data } = await supabase.from("projects").select("*").order("created_at");
-  return data || [];
-}
-
-async function getExpenses(projectId) {
-  const { data } = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("project_id", projectId);
-  return data || [];
-}
-
-function render() {
-  ["login","ceo","manager","expediter","projectForm"]
-    .forEach(id => document.getElementById(id).classList.add("hidden"));
-
-  const role = localStorage.getItem("role");
-  if (!role) return login.classList.remove("hidden");
-
-  document.getElementById(role).classList.remove("hidden");
-  if (role === "ceo") renderCEO();
-  if (role === "manager") renderManager();
-  if (role === "expediter") renderExpediter();
-}
-
-async function renderCEO() {
-  const projects = await getProjects();
-  ceoProjects.innerHTML = "";
-  noProjectsMessage.classList.toggle("hidden", projects.length > 0);
-  projects.forEach(p => {
-    ceoProjects.innerHTML += `
-      <div class="card">
-        <strong>${p.name}</strong><br>
-        Location: ${p.location || "-"}<br>
-        Budget: ${p.budget || "-"}<br>
-        Start: ${p.start || "-"}<br>
-        Target: ${p.target || "-"}<br>
-        Status: ${p.status || "-"}
-      </div>`;
-  });
-}
-
-async function renderManager() {
-  const projects = await getProjects();
-  managerProjects.innerHTML = "";
-  projects.forEach(p => {
-    managerProjects.innerHTML += `
-      <div class="card">
-        <strong>${p.name}</strong><br>
-        Budget: ${p.budget || "-"}<br>
-        <button class="btn-secondary" onclick="editProject('${p.id}')">Edit</button>
-        <button class="btn-danger" onclick="deleteProject('${p.id}')">Delete</button>
-      </div>`;
-  });
-}
-
-async function renderExpediter() {
-  const projects = await getProjects();
-  expediterProjects.innerHTML = "";
-  for (const p of projects) {
-    const expenses = await getExpenses(p.id);
-    let total = expenses.reduce((s,e)=>s+Number(e.amount),0);
-    expediterProjects.innerHTML += `
-      <div class="card">
-        <strong>${p.name}</strong><br>
-        Budget: ${p.budget || 0}<br>
-        <strong>Total Expenses:</strong> ${total}<br>
-        <strong>Remaining:</strong> ${p.budget - total}<br><br>
-        <input id="exp-${p.id}" type="number" placeholder="Expense amount">
-        <button class="btn-primary" onclick="addExpense('${p.id}')">Add Expense</button>
-        ${expenses.map(e=>`
-          <div>
-            ${e.amount}
-            <button class="btn-danger" onclick="deleteExpense('${e.id}')">X</button>
-          </div>`).join("")}
-      </div>`;
-  }
-}
-
-async function addExpense(projectId) {
-  const amount = Number(document.getElementById(`exp-${projectId}`).value);
-  if (!amount) return alert("Invalid amount");
-  await supabase.from("expenses").insert({ project_id: projectId, amount });
-  renderExpediter();
-}
-
-async function deleteExpense(id) {
-  await supabase.from("expenses").delete().eq("id", id);
-  renderExpediter();
-}
-
-function openCreate() {
-  editId = null;
-  projectForm.classList.remove("hidden");
+function showForm() {
+  document.getElementById("form").classList.remove("hidden");
 }
 
 async function saveProject() {
-  if (!pName.value.trim()) return alert("Project name required");
-  const payload = {
+  const { error } = await supabase.from("projects").insert({
     name: pName.value,
     location: pLocation.value,
     budget: pBudget.value,
     start: pStart.value,
     target: pTarget.value,
     status: pStatus.value
-  };
-  editId
-    ? await supabase.from("projects").update(payload).eq("id", editId)
-    : await supabase.from("projects").insert(payload);
-  closeForm();
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  document.getElementById("form").classList.add("hidden");
   render();
 }
 
-async function editProject(id) {
-  const { data } = await supabase.from("projects").select("*").eq("id", id).single();
-  editId = id;
-  pName.value = data.name;
-  pLocation.value = data.location;
-  pBudget.value = data.budget;
-  pStart.value = data.start;
-  pTarget.value = data.target;
-  pStatus.value = data.status;
-  projectForm.classList.remove("hidden");
+async function getProjects() {
+  const { data } = await supabase.from("projects").select("*");
+  return data || [];
 }
 
-async function deleteProject(id) {
-  await supabase.from("projects").delete().eq("id", id);
+async function render() {
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("ceo").classList.add("hidden");
+  document.getElementById("manager").classList.add("hidden");
+  document.getElementById("expediter").classList.add("hidden");
+
+  const role = localStorage.getItem("role");
+
+  if (!role) {
+    document.getElementById("login").classList.remove("hidden");
+    return;
+  }
+
+  document.getElementById(role).classList.remove("hidden");
+
+  const projects = await getProjects();
+
+  if (role === "ceo") {
+    ceoProjects.innerHTML = "";
+    projects.forEach(p => {
+      ceoProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+    });
+  }
+
+  if (role === "manager") {
+    managerProjects.innerHTML = "";
+    projects.forEach(p => {
+      managerProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+    });
+  }
+
+  if (role === "expediter") {
+    expediterProjects.innerHTML = "";
+    for (const p of projects) {
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("project_id", p.id);
+
+      let total = 0;
+      expenses?.forEach(e => total += Number(e.amount));
+
+      expediterProjects.innerHTML += `
+        <div class="card">
+          ${p.name}<br>
+          Budget: ${p.budget}<br>
+          Total: ${total}<br>
+          Remaining: ${p.budget - total}<br>
+          <input id="exp-${p.id}" type="number" placeholder="Expense">
+          <button onclick="addExpense('${p.id}')">Add</button>
+        </div>`;
+    }
+  }
+}
+
+async function addExpense(projectId) {
+  const amount = Number(document.getElementById(`exp-${projectId}`).value);
+
+  if (!amount) return;
+
+  await supabase.from("expenses").insert({
+    project_id: projectId,
+    amount: amount
+  });
+
   render();
-}
-
-function closeForm() {
-  projectForm.classList.add("hidden");
-  pName.value = pLocation.value = pBudget.value =
-  pStart.value = pTarget.value = pStatus.value = "";
 }
 
 render();
 </script>
+
 </body>
 </html>
