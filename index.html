@@ -4,14 +4,13 @@
   <meta charset="UTF-8" />
   <title>Project Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body { font-family: Arial; background:#f2f4f7; padding:20px; }
     .hidden { display:none; }
     .card { background:#fff; padding:15px; margin-bottom:10px; border-left:5px solid #0d6efd; }
-    button { padding:8px 12px; margin:5px 0; }
+    button { padding:6px 10px; margin:3px 0; }
     input, select { width:100%; padding:6px; margin-bottom:8px; }
   </style>
 </head>
@@ -47,7 +46,7 @@
 </div>
 
 <div id="form" class="hidden">
-  <h3>Create Project</h3>
+  <h3 id="formTitle">Create Project</h3>
   <input id="pName" placeholder="Project Name" />
   <input id="pLocation" placeholder="Location" />
   <input id="pBudget" type="number" placeholder="Budget" />
@@ -65,6 +64,8 @@ window.addEventListener("load", function () {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
   );
 
+  let editId = null;
+
   window.login = function () {
     localStorage.setItem("role", document.getElementById("role").value);
     render();
@@ -76,25 +77,58 @@ window.addEventListener("load", function () {
   };
 
   window.showForm = function () {
+    editId = null;
+    clearForm();
+    document.getElementById("formTitle").innerText = "Create Project";
     document.getElementById("form").classList.remove("hidden");
   };
 
   window.saveProject = async function () {
-    const { error } = await supabaseClient.from("projects").insert({
+
+    const payload = {
       name: pName.value,
       location: pLocation.value,
       budget: pBudget.value,
       start: pStart.value,
       target: pTarget.value,
       status: pStatus.value
-    });
+    };
 
-    if (error) {
-      alert(error.message);
-      return;
+    if (editId !== null) {
+      await supabaseClient.from("projects").update(payload).eq("id", editId);
+      editId = null; // IMPORTANT FIX
+    } else {
+      await supabaseClient.from("projects").insert(payload);
     }
 
     document.getElementById("form").classList.add("hidden");
+    clearForm();
+    render();
+  };
+
+  window.editProject = async function (id) {
+    const { data } = await supabaseClient
+      .from("projects")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    editId = id;
+
+    document.getElementById("formTitle").innerText = "Edit Project";
+    pName.value = data.name;
+    pLocation.value = data.location;
+    pBudget.value = data.budget;
+    pStart.value = data.start;
+    pTarget.value = data.target;
+    pStatus.value = data.status;
+
+    document.getElementById("form").classList.remove("hidden");
+  };
+
+  window.deleteProject = async function (id) {
+    if (!confirm("Delete this project?")) return;
+    await supabaseClient.from("projects").delete().eq("id", id);
     render();
   };
 
@@ -130,7 +164,12 @@ window.addEventListener("load", function () {
     if (role === "manager") {
       managerProjects.innerHTML = "";
       projects.forEach(p => {
-        managerProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+        managerProjects.innerHTML += `
+          <div class="card">
+            ${p.name} - ${p.budget}<br>
+            <button onclick="editProject('${p.id}')">Edit</button>
+            <button onclick="deleteProject('${p.id}')">Delete</button>
+          </div>`;
       });
     }
 
@@ -169,6 +208,15 @@ window.addEventListener("load", function () {
 
     render();
   };
+
+  function clearForm() {
+    pName.value = "";
+    pLocation.value = "";
+    pBudget.value = "";
+    pStart.value = "";
+    pTarget.value = "";
+    pStatus.value = "";
+  }
 
   render();
 });
