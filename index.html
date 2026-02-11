@@ -1,258 +1,349 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>MTP Marine Services - Project Monitoring</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>MTP Marine Services - Project Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f4f6f9;
-}
-
-header{
-  background:#0d47a1;
-  color:white;
-  padding:15px;
-  text-align:center;
-}
-
-.logo{
-  width:100px;
-  display:block;
-  margin:0 auto 10px auto;
-}
-
-.container{
-  padding:15px;
-}
-
-.card{
-  background:white;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:8px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-button{
-  padding:6px 10px;
-  margin:3px 0;
-  border:none;
-  border-radius:4px;
-  cursor:pointer;
-  background:#0d47a1;
-  color:white;
-}
-
-input,select{
-  padding:6px;
-  margin:3px 0;
-  width:100%;
-}
-
-.positive{color:green;}
-.negative{color:red;}
-
-.hidden{display:none;}
-</style>
+  <style>
+    body { margin:0; font-family:Arial; background:#f4f7fb; }
+    .navbar {
+      background: linear-gradient(90deg,#0b3d91,#125cc0);
+      color:white; padding:15px 25px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .nav-left { display:flex; align-items:center; gap:15px; }
+    .nav-left img { height:65px; }
+    .nav-title { font-size:22px; font-weight:bold; }
+    .container { padding:25px; }
+    .hidden { display:none; }
+    .card {
+      background:white; padding:20px; margin-bottom:20px;
+      border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08);
+      border-left:6px solid #0b3d91;
+    }
+    button {
+      padding:7px 12px; margin:5px 4px;
+      border:none; border-radius:6px;
+      cursor:pointer; background:#0b3d91; color:white;
+    }
+    button:hover { opacity:0.9; }
+    input, select {
+      width:100%; padding:8px; margin-bottom:10px;
+      border-radius:6px; border:1px solid #ccc;
+    }
+    .negative { color:red; font-weight:bold; }
+    .positive { color:green; font-weight:bold; }
+    .login-box {
+      max-width:400px; margin:80px auto;
+      background:white; padding:30px;
+      border-radius:12px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.15);
+      text-align:center;
+    }
+  </style>
 </head>
-
 <body>
 
-<header>
-  <img src="logo.jpg" class="logo">
-  <h2>MTP Marine Services</h2>
-  <div id="userInfo"></div>
-  <button onclick="logout()">Logout</button>
-</header>
-
-<div class="container">
-
-<div id="loginBox">
-  <h3>Login</h3>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="dashboard" class="hidden">
-
-  <div id="manager" class="hidden">
-    <h3>Create Project</h3>
-    <input id="pname" placeholder="Project Name">
-    <input id="plocation" placeholder="Location">
-    <input id="pstart" type="date">
-    <input id="ptarget" type="date">
-    <input id="prevenue" type="number" placeholder="Revenue">
-    <button onclick="addProject()">Add Project</button>
+<div class="navbar hidden" id="mainNav">
+  <div class="nav-left">
+    <img src="logo.jpg">
+    <div class="nav-title">MTP Marine Services</div>
   </div>
-
-  <div id="projects"></div>
-
+  <button onclick="logout()">Logout</button>
 </div>
 
+<div id="login">
+  <div class="login-box">
+    <h2>Login</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p id="errorMsg" style="color:red;"></p>
+  </div>
+</div>
+
+<div class="container hidden" id="ceo">
+  <h2>CEO Dashboard</h2>
+  <div id="ceoSummary"></div>
+  <div id="ceoProjects"></div>
+</div>
+
+<div class="container hidden" id="manager">
+  <h2>Manager Dashboard</h2>
+  <button onclick="showForm()">Create Project</button>
+  <div id="managerProjects"></div>
+</div>
+
+<div class="container hidden" id="expediter">
+  <h2>Expediter Dashboard</h2>
+  <div id="expediterProjects"></div>
+</div>
+
+<div class="container hidden" id="form">
+  <h3 id="formTitle">Create Project</h3>
+  <input id="pName" placeholder="Project Name (Required)" />
+  <input id="pLocation" placeholder="Location" />
+  <input id="pBudget" type="number" placeholder="Project Revenue" />
+  <input id="pStart" type="date" />
+  <input id="pTarget" type="date" />
+  <input id="pStatus" placeholder="Status" />
+  <button onclick="saveProject()">Save</button>
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
-"https://qybnvniuifdbxyhyjarn.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
-);
+window.addEventListener("load", function () {
 
-let currentUser=null;
-let currentRole=null;
+  const supabaseClient = window.supabase.createClient(
+    "https://qybnvniuifdbxyhyjarn.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
+  );
 
-async function login(){
-  const email=document.getElementById("email").value;
-  const password=document.getElementById("password").value;
+  let currentRole = null;
+  let editId = null;
 
-  const {data,error}=await supabase.auth.signInWithPassword({
-    email,password
-  });
+  window.login = async function () {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email: email.value,
+      password: password.value
+    });
+    if (error) {
+      errorMsg.innerText = error.message;
+      return;
+    }
+    loadUser();
+  };
 
-  if(error){alert(error.message);return;}
+  window.logout = async function () {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  };
 
-  loadUser();
-}
+  async function loadUser() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      document.getElementById("login").classList.remove("hidden");
+      return;
+    }
 
-async function loadUser(){
-  const {data:{user}}=await supabase.auth.getUser();
-  if(!user)return;
+    document.getElementById("mainNav").classList.remove("hidden");
 
-  currentUser=user;
+    const { data } = await supabaseClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-  const {data}=await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id",user.id)
-    .single();
+    currentRole = data.role;
+    render();
+  }
 
-  currentRole=data.role;
+  window.showForm = function () {
+    editId = null;
+    clearForm();
+    document.getElementById("formTitle").innerText = "Create Project";
+    document.getElementById("form").classList.remove("hidden");
+  };
 
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-  document.getElementById("userInfo").innerText=
-    user.email+" ("+currentRole+")";
+  window.saveProject = async function () {
 
-  document.getElementById("manager").classList.add("hidden");
-  if(currentRole==="manager")
-    document.getElementById("manager").classList.remove("hidden");
+    if (!pName.value.trim()) {
+      alert("Project name is required");
+      return;
+    }
 
-  render();
-}
+    const payload = {
+      name: pName.value.trim(),
+      location: pLocation.value || null,
+      budget: pBudget.value || null,
+      start: pStart.value || null,
+      target: pTarget.value || null,
+      status: pStatus.value || null
+    };
 
-async function logout(){
-  await supabase.auth.signOut();
-  location.reload();
-}
+    if (editId) {
+      await supabaseClient.from("projects").update(payload).eq("id", editId);
+      editId = null;
+    } else {
+      await supabaseClient.from("projects").insert(payload);
+    }
 
-async function addProject(){
-  await supabase.from("projects").insert({
-    name:pname.value,
-    location:plocation.value,
-    start:pstart.value,
-    target:ptarget.value,
-    revenue:Number(prevenue.value)
-  });
-  render();
-}
+    document.getElementById("form").classList.add("hidden");
+    clearForm();
+    render();
+  };
 
-async function deleteProject(id){
-  if(!confirm("Delete project?"))return;
-  await supabase.from("projects").delete().eq("id",id);
-  render();
-}
+  window.editProject = async function (id) {
+    const { data } = await supabaseClient
+      .from("projects")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-async function editProject(id){
-  const name=prompt("New name:");
-  if(!name)return;
-  await supabase.from("projects").update({name}).eq("id",id);
-  render();
-}
+    editId = id;
+    pName.value = data.name || "";
+    pLocation.value = data.location || "";
+    pBudget.value = data.budget || "";
+    pStart.value = data.start || "";
+    pTarget.value = data.target || "";
+    pStatus.value = data.status || "";
 
-async function addExpense(pid){
-  const amount=Number(document.getElementById("exp-"+pid).value);
-  const category=document.getElementById("cat-"+pid).value;
+    document.getElementById("formTitle").innerText = "Edit Project";
+    document.getElementById("form").classList.remove("hidden");
+  };
 
-  await supabase.from("expenses").insert({
-    project_id:pid,
-    amount,
-    category
-  });
-  render();
-}
+  window.deleteProject = async function (id) {
+    if (!confirm("Delete this project?")) return;
+    await supabaseClient.from("projects").delete().eq("id", id);
+    render();
+  };
 
-async function deleteExpense(id){
-  await supabase.from("expenses").delete().eq("id",id);
-  render();
-}
+  window.addExpense = async function (projectId) {
+    const amount = Number(document.getElementById(`exp-${projectId}`).value);
+    const category = document.getElementById(`cat-${projectId}`).value;
 
-async function render(){
-  const {data:projects}=await supabase.from("projects").select("*");
-  const {data:expenses}=await supabase.from("expenses").select("*");
+    if (!amount || amount <= 0) {
+      alert("Enter valid amount");
+      return;
+    }
 
-  const container=document.getElementById("projects");
-  container.innerHTML="";
-
-  projects.forEach(p=>{
-    const exp=expenses.filter(e=>e.project_id===p.id);
-    const totalExp=exp.reduce((a,b)=>a+b.amount,0);
-    const profit=p.revenue-totalExp;
-    const margin=p.revenue?((profit/p.revenue)*100).toFixed(2):0;
-
-    let expenseHTML="";
-    exp.forEach(e=>{
-      expenseHTML+=`
-        <div>
-          ${e.category}: ${e.amount}
-          ${currentRole==="expediter"
-            ? `<button onclick="deleteExpense('${e.id}')">X</button>`
-            : ""}
-        </div>`;
+    await supabaseClient.from("expenses").insert({
+      project_id: projectId,
+      amount,
+      category
     });
 
-    container.innerHTML+=`
-    <div class="card">
-      <strong>${p.name}</strong><br>
-      Location: ${p.location||"-"}<br>
-      Revenue: ${p.revenue}<br>
-      Expenses: ${totalExp}<br>
-      Profit:
-      <span class="${profit<0?'negative':'positive'}">${profit}</span><br>
-      Margin:
-      <span class="${margin<0?'negative':'positive'}">${margin}%</span>
-      <hr>
-      ${expenseHTML||"No expenses"}
+    render();
+  };
 
-      ${currentRole==="expediter"?`
-        <hr>
-        <select id="cat-${p.id}">
-          <option>Materials</option>
-          <option>Labor</option>
-          <option>Transport</option>
-          <option>Equipment</option>
-          <option>Misc</option>
-        </select>
-        <input id="exp-${p.id}" type="number" placeholder="Amount">
-        <button onclick="addExpense('${p.id}')">Add Expense</button>
-      `:""}
+  window.deleteExpense = async function (expenseId) {
+    await supabaseClient.from("expenses").delete().eq("id", expenseId);
+    render();
+  };
 
-      ${currentRole==="manager"?`
-        <hr>
-        <button onclick="editProject('${p.id}')">Edit</button>
-        <button onclick="deleteProject('${p.id}')">Delete</button>
-      `:""}
-    </div>
-    `;
-  });
-}
+  async function render() {
 
-loadUser();
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("ceo").classList.add("hidden");
+    document.getElementById("manager").classList.add("hidden");
+    document.getElementById("expediter").classList.add("hidden");
+
+    if (!currentRole) return;
+
+    document.getElementById(currentRole).classList.remove("hidden");
+
+    const { data: projects } = await supabaseClient
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    const container =
+      currentRole === "ceo" ? ceoProjects :
+      currentRole === "manager" ? managerProjects :
+      expediterProjects;
+
+    container.innerHTML = "";
+
+    let grandRevenue = 0;
+    let grandExpenses = 0;
+
+    for (const p of projects || []) {
+
+      const { data: expenses } = await supabaseClient
+        .from("expenses")
+        .select("*")
+        .eq("project_id", p.id);
+
+      let expensesTotal = 0;
+      let expenseHTML = "";
+
+      expenses?.forEach(e => {
+        expensesTotal += Number(e.amount);
+        expenseHTML += `
+          <div>
+            • ${e.category || "Uncategorized"} - ${e.amount}
+            ${currentRole === "expediter"
+              ? `<button onclick="deleteExpense('${e.id}')">Delete</button>`
+              : ""}
+          </div>
+        `;
+      });
+
+      const revenue = Number(p.budget) || 0;
+      const profit = revenue - expensesTotal;
+      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(2) : 0;
+
+      grandRevenue += revenue;
+      grandExpenses += expensesTotal;
+
+      container.innerHTML += `
+        <div class="card">
+          <strong>${p.name}</strong><br><br>
+          Location: ${p.location || "-"}<br>
+          Start: ${p.start || "-"}<br>
+          Target: ${p.target || "-"}<br>
+          Status: ${p.status || "-"}<br><br>
+
+          Revenue: ${revenue}<br>
+          Total Expenses: ${expensesTotal}<br>
+          Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${profit}</span><br>
+          Margin: <span class="${margin < 0 ? 'negative' : 'positive'}">${margin}%</span>
+          <hr>
+
+          ${expenseHTML || "No expenses yet"}
+
+          ${currentRole === "manager" ? `
+            <hr>
+            <button onclick="editProject('${p.id}')">Edit</button>
+            <button onclick="deleteProject('${p.id}')">Delete</button>
+          ` : ""}
+
+          ${currentRole === "expediter" ? `
+            <hr>
+            <select id="cat-${p.id}">
+              <option value="Materials">Materials</option>
+              <option value="Labor">Labor</option>
+              <option value="Transport">Transport</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Misc">Misc</option>
+            </select>
+            <input id="exp-${p.id}" type="number" placeholder="Expense Amount">
+            <button onclick="addExpense('${p.id}')">Add Expense</button>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    if (currentRole === "ceo") {
+      const grandProfit = grandRevenue - grandExpenses;
+      const overallMargin = grandRevenue > 0
+        ? ((grandProfit / grandRevenue) * 100).toFixed(2)
+        : 0;
+
+      ceoSummary.innerHTML = `
+        <div class="card">
+          <h3>Company Overview</h3>
+          Total Revenue: ${grandRevenue}<br>
+          Total Expenses: ${grandExpenses}<br>
+          Net Profit: <span class="${grandProfit < 0 ? 'negative' : 'positive'}">${grandProfit}</span><br>
+          Overall Margin: <span class="${overallMargin < 0 ? 'negative' : 'positive'}">${overallMargin}%</span>
+        </div>
+      `;
+    }
+  }
+
+  function clearForm() {
+    pName.value = "";
+    pLocation.value = "";
+    pBudget.value = "";
+    pStart.value = "";
+    pTarget.value = "";
+    pStatus.value = "";
+  }
+
+  loadUser();
+});
 </script>
 
 </body>
