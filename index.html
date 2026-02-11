@@ -2,141 +2,258 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Project Monitoring v1.0</title>
+  <title>Project Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Supabase v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      background: #f2f4f7;
       margin: 0;
+      padding: 20px;
     }
-
-    .card {
-      background: white;
-      padding: 24px;
-      width: 100%;
-      max-width: 360px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-
+    h1 { margin: 0 0 10px; }
     button {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
+      padding: 10px 14px;
       border: none;
       border-radius: 4px;
-      font-size: 16px;
       cursor: pointer;
     }
-
-    .login {
-      background: #2563eb;
-      color: white;
+    .btn-primary { background: #0d6efd; color: #fff; }
+    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-secondary { background: #6c757d; color: #fff; }
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 14px;
+      border-left: 6px solid #0d6efd;
     }
-
-    .signup {
-      background: #10b981;
-      color: white;
+    .hidden { display: none; }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
     }
-
-    #msg {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 14px;
-      color: #dc2626;
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
   </style>
 </head>
+
 <body>
 
-  <div class="card">
-    <h2>Project Monitoring</h2>
+<!-- LOGIN -->
+<div id="login">
+  <h1>Login</h1>
+  <select id="role">
+    <option value="ceo">CEO</option>
+    <option value="manager">Manager</option>
+    <option value="expediter">Expediter</option>
+  </select>
+  <button class="btn-primary" onclick="login()">Login</button>
+</div>
 
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
-
-    <button class="login" onclick="login()">Login</button>
-    <button class="signup" onclick="signup()">Sign Up</button>
-
-    <p id="msg"></p>
+<!-- CEO -->
+<div id="ceo" class="hidden">
+  <div class="topbar">
+    <h1>CEO Dashboard</h1>
+    <button class="btn-secondary" onclick="logout()">Logout</button>
   </div>
+  <p id="noProjectsMessage" class="hidden" style="color:red">No Available Projects.</p>
+  <div id="ceoProjects"></div>
+</div>
 
-  <script>
-    // 🔴 CHANGE THESE TO YOUR NEW SUPABASE PROJECT
-    const SUPABASE_URL = "https://pqkszsydshmrllagajrw.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxa3N6c3lkc2htcmxsYWdhanJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTE2MzksImV4cCI6MjA4NjMyNzYzOX0.1MtNcnBAVsakfTrG1JVJ2toT-HGdxpKHhbmTD1GKY1A";
+<!-- MANAGER -->
+<div id="manager" class="hidden">
+  <div class="topbar">
+    <h1>Manager Dashboard</h1>
+    <button class="btn-secondary" onclick="logout()">Logout</button>
+  </div>
+  <div id="managerProjects"></div>
+  <button class="btn-primary" onclick="openCreate()">Create Project</button>
+</div>
 
-    const supabase = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
+<!-- EXPEDITER -->
+<div id="expediter" class="hidden">
+  <div class="topbar">
+    <h1>Expediter Dashboard</h1>
+    <button class="btn-secondary" onclick="logout()">Logout</button>
+  </div>
+  <div id="expediterProjects"></div>
+</div>
 
-    async function signup() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "";
+<!-- PROJECT FORM -->
+<div id="projectForm" class="hidden">
+  <h2 id="formTitle">Create Project</h2>
+  <input id="pName" placeholder="Project Name (required)" />
+  <input id="pLocation" placeholder="Location" />
+  <input id="pBudget" type="number" placeholder="Budget" />
+  <input id="pStart" type="date" />
+  <input id="pTarget" type="date" />
+  <input id="pStatus" placeholder="Status" />
+  <button class="btn-primary" onclick="saveProject()">Save</button>
+  <button class="btn-secondary" onclick="closeForm()">Cancel</button>
+</div>
 
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
+<script>
+const supabase = supabaseJs.createClient(
+  "https://qybnvniuifdbxyhyjarn.supabase.co",
+  "YOUR_ANON_PUBLIC_KEY_HERE"
+);
 
-      if (!email || !password) {
-        msg.textContent = "Email and password required";
-        return;
-      }
+let editId = null;
 
-      const { error } = await supabase.auth.signUp({
-        email,
-        password
-      });
+function login() {
+  localStorage.setItem("role", role.value);
+  render();
+}
+function logout() {
+  localStorage.removeItem("role");
+  location.reload();
+}
 
-      msg.textContent = error
-        ? error.message
-        : "Check your email to confirm signup";
-    }
+async function getProjects() {
+  const { data } = await supabase.from("projects").select("*").order("created_at");
+  return data || [];
+}
 
-    async function login() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "";
+async function getExpenses(projectId) {
+  const { data } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("project_id", projectId);
+  return data || [];
+}
 
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
+function render() {
+  ["login","ceo","manager","expediter","projectForm"]
+    .forEach(id => document.getElementById(id).classList.add("hidden"));
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+  const role = localStorage.getItem("role");
+  if (!role) return login.classList.remove("hidden");
 
-      if (error) {
-        msg.textContent = error.message;
-      } else {
-        msg.style.color = "green";
-        msg.textContent = "Login successful!";
-        // later: window.location.href = "dashboard.html";
-      }
-    }
-  </script>
+  document.getElementById(role).classList.remove("hidden");
+  if (role === "ceo") renderCEO();
+  if (role === "manager") renderManager();
+  if (role === "expediter") renderExpediter();
+}
 
+async function renderCEO() {
+  const projects = await getProjects();
+  ceoProjects.innerHTML = "";
+  noProjectsMessage.classList.toggle("hidden", projects.length > 0);
+  projects.forEach(p => {
+    ceoProjects.innerHTML += `
+      <div class="card">
+        <strong>${p.name}</strong><br>
+        Location: ${p.location || "-"}<br>
+        Budget: ${p.budget || "-"}<br>
+        Start: ${p.start || "-"}<br>
+        Target: ${p.target || "-"}<br>
+        Status: ${p.status || "-"}
+      </div>`;
+  });
+}
+
+async function renderManager() {
+  const projects = await getProjects();
+  managerProjects.innerHTML = "";
+  projects.forEach(p => {
+    managerProjects.innerHTML += `
+      <div class="card">
+        <strong>${p.name}</strong><br>
+        Budget: ${p.budget || "-"}<br>
+        <button class="btn-secondary" onclick="editProject('${p.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteProject('${p.id}')">Delete</button>
+      </div>`;
+  });
+}
+
+async function renderExpediter() {
+  const projects = await getProjects();
+  expediterProjects.innerHTML = "";
+  for (const p of projects) {
+    const expenses = await getExpenses(p.id);
+    let total = expenses.reduce((s,e)=>s+Number(e.amount),0);
+    expediterProjects.innerHTML += `
+      <div class="card">
+        <strong>${p.name}</strong><br>
+        Budget: ${p.budget || 0}<br>
+        <strong>Total Expenses:</strong> ${total}<br>
+        <strong>Remaining:</strong> ${p.budget - total}<br><br>
+        <input id="exp-${p.id}" type="number" placeholder="Expense amount">
+        <button class="btn-primary" onclick="addExpense('${p.id}')">Add Expense</button>
+        ${expenses.map(e=>`
+          <div>
+            ${e.amount}
+            <button class="btn-danger" onclick="deleteExpense('${e.id}')">X</button>
+          </div>`).join("")}
+      </div>`;
+  }
+}
+
+async function addExpense(projectId) {
+  const amount = Number(document.getElementById(`exp-${projectId}`).value);
+  if (!amount) return alert("Invalid amount");
+  await supabase.from("expenses").insert({ project_id: projectId, amount });
+  renderExpediter();
+}
+
+async function deleteExpense(id) {
+  await supabase.from("expenses").delete().eq("id", id);
+  renderExpediter();
+}
+
+function openCreate() {
+  editId = null;
+  projectForm.classList.remove("hidden");
+}
+
+async function saveProject() {
+  if (!pName.value.trim()) return alert("Project name required");
+  const payload = {
+    name: pName.value,
+    location: pLocation.value,
+    budget: pBudget.value,
+    start: pStart.value,
+    target: pTarget.value,
+    status: pStatus.value
+  };
+  editId
+    ? await supabase.from("projects").update(payload).eq("id", editId)
+    : await supabase.from("projects").insert(payload);
+  closeForm();
+  render();
+}
+
+async function editProject(id) {
+  const { data } = await supabase.from("projects").select("*").eq("id", id).single();
+  editId = id;
+  pName.value = data.name;
+  pLocation.value = data.location;
+  pBudget.value = data.budget;
+  pStart.value = data.start;
+  pTarget.value = data.target;
+  pStatus.value = data.status;
+  projectForm.classList.remove("hidden");
+}
+
+async function deleteProject(id) {
+  await supabase.from("projects").delete().eq("id", id);
+  render();
+}
+
+function closeForm() {
+  projectForm.classList.add("hidden");
+  pName.value = pLocation.value = pBudget.value =
+  pStart.value = pTarget.value = pStatus.value = "";
+}
+
+render();
+</script>
 </body>
 </html>
