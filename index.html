@@ -73,6 +73,7 @@
 <div class="container hidden" id="manager">
   <h2>Manager Dashboard</h2>
   <button onclick="showForm()">Create Project</button>
+  <button onclick="exportProjects()">Export to Excel</button>
   <div id="managerProjects"></div>
 </div>
 
@@ -145,6 +146,54 @@ window.addEventListener("load", function () {
     currentRole = data.role;
     render();
   }
+
+  window.exportProjects = async function () {
+
+    const { data: projects } = await supabaseClient
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (!projects || projects.length === 0) {
+      alert("No projects to export.");
+      return;
+    }
+
+    let csvContent =
+      "Project Name,Location,Revenue (PHP),Total Expenses (PHP),Profit (PHP),Margin (%)\n";
+
+    for (const p of projects) {
+
+      const { data: expenses } = await supabaseClient
+        .from("expenses")
+        .select("*")
+        .eq("project_id", p.id);
+
+      let expensesTotal = 0;
+      expenses?.forEach(e => {
+        expensesTotal += Number(e.amount) || 0;
+      });
+
+      const revenue = Number(p.budget) || 0;
+      const profit = revenue - expensesTotal;
+      const margin = revenue > 0
+        ? ((profit / revenue) * 100).toFixed(2)
+        : 0;
+
+      csvContent += `"${p.name}","${p.location || "-"}",${revenue},${expensesTotal},${profit},${margin}%\n`;
+    }
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "MTP_Marine_Projects.csv";
+    link.click();
+  };
+
+  /* ===== RENDER FUNCTION (UNCHANGED LOGIC) ===== */
 
   window.showForm = function () {
     editId = null;
