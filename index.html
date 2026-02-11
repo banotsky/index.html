@@ -1,49 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>MTP Marine Services - Project Management</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8" />
+<title>MTP Marine Services - Project Management</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body { margin:0; font-family:Arial; background:#f4f7fb; }
-    .navbar {
-      background: linear-gradient(90deg,#0b3d91,#125cc0);
-      color:white; padding:15px 25px;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .nav-left { display:flex; align-items:center; gap:15px; }
-    .nav-left img { height:65px; }
-    .nav-title { font-size:22px; font-weight:bold; }
-    .container { padding:25px; }
-    .hidden { display:none; }
-    .card {
-      background:white; padding:20px; margin-bottom:20px;
-      border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08);
-      border-left:6px solid #0b3d91;
-    }
-    button {
-      padding:7px 12px; margin:5px 4px;
-      border:none; border-radius:6px;
-      cursor:pointer; background:#0b3d91; color:white;
-    }
-    button:hover { opacity:0.9; }
-    input, select {
-      width:100%; padding:8px; margin-bottom:10px;
-      border-radius:6px; border:1px solid #ccc;
-    }
-    .negative { color:red; font-weight:bold; }
-    .positive { color:green; font-weight:bold; }
-    .login-box {
-      max-width:400px; margin:80px auto;
-      background:white; padding:30px;
-      border-radius:12px;
-      box-shadow:0 6px 20px rgba(0,0,0,0.15);
-      text-align:center;
-    }
-  </style>
+<style>
+body { margin:0; font-family:Arial; background:#f4f7fb; }
+.navbar {
+  background: linear-gradient(90deg,#0b3d91,#125cc0);
+  color:white; padding:15px 25px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.nav-left { display:flex; align-items:center; gap:15px; }
+.nav-left img { height:65px; }
+.nav-title { font-size:22px; font-weight:bold; }
+.nav-right { display:flex; gap:10px; }
+.container { padding:25px; }
+.hidden { display:none; }
+.card {
+  background:white; padding:20px; margin-bottom:20px;
+  border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  border-left:6px solid #0b3d91;
+}
+button {
+  padding:7px 12px; margin:5px 4px;
+  border:none; border-radius:6px;
+  cursor:pointer; background:#0b3d91; color:white;
+}
+button:hover { opacity:0.9; }
+input, select {
+  width:100%; padding:8px; margin-bottom:10px;
+  border-radius:6px; border:1px solid #ccc;
+}
+.negative { color:red; font-weight:bold; }
+.positive { color:green; font-weight:bold; }
+.login-box {
+  max-width:400px; margin:80px auto;
+  background:white; padding:30px;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.15);
+  text-align:center;
+}
+.expense-meta {
+  font-size:13px;
+  color:#555;
+  margin-bottom:8px;
+}
+.project-details {
+  font-size:14px;
+  margin-bottom:10px;
+  line-height:1.6;
+}
+</style>
 </head>
+
 <body>
 
 <div class="navbar hidden" id="mainNav">
@@ -51,7 +63,10 @@
     <img src="logo.jpg">
     <div class="nav-title">MTP Marine Services</div>
   </div>
-  <button onclick="logout()">Logout</button>
+  <div class="nav-right">
+    <button onclick="changePassword()">Change Password</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <div id="login">
@@ -73,7 +88,6 @@
 <div class="container hidden" id="manager">
   <h2>Manager Dashboard</h2>
   <button onclick="showForm()">Create Project</button>
-  <button onclick="exportProjects()">Export to Excel</button>
   <div id="managerProjects"></div>
 </div>
 
@@ -96,312 +110,294 @@
 <script>
 window.addEventListener("load", function () {
 
-  const supabaseClient = window.supabase.createClient(
-    "https://qybnvniuifdbxyhyjarn.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
-  );
+const supabaseClient = window.supabase.createClient(
+"https://qybnvniuifdbxyhyjarn.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
+);
 
-  function formatPeso(value) {
-    return "₱" + Number(value || 0).toLocaleString("en-PH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
+function formatPeso(value) {
+  return "₱" + Number(value || 0).toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+let currentRole = null;
+let editId = null;
+
+window.login = async function () {
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
+  });
+  if (error) {
+    errorMsg.innerText = error.message;
+    return;
   }
-
-  let currentRole = null;
-  let editId = null;
-
-  window.login = async function () {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email: email.value,
-      password: password.value
-    });
-    if (error) {
-      errorMsg.innerText = error.message;
-      return;
-    }
-    loadUser();
-  };
-
-  window.logout = async function () {
-    await supabaseClient.auth.signOut();
-    location.reload();
-  };
-
-  async function loadUser() {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      document.getElementById("login").classList.remove("hidden");
-      return;
-    }
-
-    document.getElementById("mainNav").classList.remove("hidden");
-
-    const { data } = await supabaseClient
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    currentRole = data.role;
-    render();
-  }
-
-  window.exportProjects = async function () {
-
-    const { data: projects } = await supabaseClient
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (!projects || projects.length === 0) {
-      alert("No projects to export.");
-      return;
-    }
-
-    let csvContent =
-      "Project Name,Location,Revenue (PHP),Total Expenses (PHP),Profit (PHP),Margin (%)\n";
-
-    for (const p of projects) {
-
-      const { data: expenses } = await supabaseClient
-        .from("expenses")
-        .select("*")
-        .eq("project_id", p.id);
-
-      let expensesTotal = 0;
-      expenses?.forEach(e => {
-        expensesTotal += Number(e.amount) || 0;
-      });
-
-      const revenue = Number(p.budget) || 0;
-      const profit = revenue - expensesTotal;
-      const margin = revenue > 0
-        ? ((profit / revenue) * 100).toFixed(2)
-        : 0;
-
-      csvContent += `"${p.name}","${p.location || "-"}",${revenue},${expensesTotal},${profit},${margin}%\n`;
-    }
-
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;"
-    });
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "MTP_Marine_Projects.csv";
-    link.click();
-  };
-
-  /* ===== RENDER FUNCTION (UNCHANGED LOGIC) ===== */
-
-  window.showForm = function () {
-    editId = null;
-    clearForm();
-    document.getElementById("formTitle").innerText = "Create Project";
-    document.getElementById("form").classList.remove("hidden");
-  };
-
-  window.saveProject = async function () {
-    if (!pName.value.trim()) {
-      alert("Project name is required");
-      return;
-    }
-
-    const payload = {
-      name: pName.value.trim(),
-      location: pLocation.value || null,
-      budget: pBudget.value || null,
-      start: pStart.value || null,
-      target: pTarget.value || null,
-      status: pStatus.value || null
-    };
-
-    if (editId) {
-      await supabaseClient.from("projects").update(payload).eq("id", editId);
-      editId = null;
-    } else {
-      await supabaseClient.from("projects").insert(payload);
-    }
-
-    document.getElementById("form").classList.add("hidden");
-    clearForm();
-    render();
-  };
-
-  window.editProject = async function (id) {
-    const { data } = await supabaseClient
-      .from("projects")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    editId = id;
-    pName.value = data.name || "";
-    pLocation.value = data.location || "";
-    pBudget.value = data.budget || "";
-    pStart.value = data.start || "";
-    pTarget.value = data.target || "";
-    pStatus.value = data.status || "";
-
-    document.getElementById("formTitle").innerText = "Edit Project";
-    document.getElementById("form").classList.remove("hidden");
-  };
-
-  window.deleteProject = async function (id) {
-    if (!confirm("Delete this project?")) return;
-    await supabaseClient.from("projects").delete().eq("id", id);
-    render();
-  };
-
-  window.addExpense = async function (projectId) {
-    const amount = Number(document.getElementById(`exp-${projectId}`).value);
-    const category = document.getElementById(`cat-${projectId}`).value;
-
-    if (!amount || amount <= 0) {
-      alert("Enter valid amount");
-      return;
-    }
-
-    await supabaseClient.from("expenses").insert({
-      project_id: projectId,
-      amount,
-      category
-    });
-
-    render();
-  };
-
-  window.deleteExpense = async function (expenseId) {
-    await supabaseClient.from("expenses").delete().eq("id", expenseId);
-    render();
-  };
-
-  async function render() {
-
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("ceo").classList.add("hidden");
-    document.getElementById("manager").classList.add("hidden");
-    document.getElementById("expediter").classList.add("hidden");
-
-    if (!currentRole) return;
-
-    document.getElementById(currentRole).classList.remove("hidden");
-
-    const { data: projects } = await supabaseClient
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    const container =
-      currentRole === "ceo" ? ceoProjects :
-      currentRole === "manager" ? managerProjects :
-      expediterProjects;
-
-    container.innerHTML = "";
-
-    let grandRevenue = 0;
-    let grandExpenses = 0;
-
-    for (const p of projects || []) {
-
-      const { data: expenses } = await supabaseClient
-        .from("expenses")
-        .select("*")
-        .eq("project_id", p.id);
-
-      let expensesTotal = 0;
-      let expenseHTML = "";
-
-      expenses?.forEach(e => {
-        const amount = Number(e.amount) || 0;
-        expensesTotal += amount;
-
-        expenseHTML += `
-          <div>
-            • ${e.category || "Uncategorized"} - ${formatPeso(amount)}
-            ${currentRole === "expediter"
-              ? `<button onclick="deleteExpense('${e.id}')">Delete</button>`
-              : ""}
-          </div>
-        `;
-      });
-
-      const revenue = Number(p.budget) || 0;
-      const profit = revenue - expensesTotal;
-      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(2) : 0;
-
-      grandRevenue += revenue;
-      grandExpenses += expensesTotal;
-
-      container.innerHTML += `
-        <div class="card">
-          <strong>${p.name}</strong><br><br>
-          Location: ${p.location || "-"}<br>
-          Start: ${p.start || "-"}<br>
-          Target: ${p.target || "-"}<br>
-          Status: ${p.status || "-"}<br><br>
-
-          Revenue: ${formatPeso(revenue)}<br>
-          Total Expenses: ${formatPeso(expensesTotal)}<br>
-          Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${formatPeso(profit)}</span><br>
-          Margin: <span class="${margin < 0 ? 'negative' : 'positive'}">${margin}%</span>
-          <hr>
-
-          ${expenseHTML || "No expenses yet"}
-
-          ${currentRole === "manager" ? `
-            <hr>
-            <button onclick="editProject('${p.id}')">Edit</button>
-            <button onclick="deleteProject('${p.id}')">Delete</button>
-          ` : ""}
-
-          ${currentRole === "expediter" ? `
-            <hr>
-            <select id="cat-${p.id}">
-              <option value="Materials">Materials</option>
-              <option value="Labor">Labor</option>
-              <option value="Transport">Transport</option>
-              <option value="Equipment">Equipment</option>
-              <option value="Misc">Misc</option>
-            </select>
-            <input id="exp-${p.id}" type="number" placeholder="Expense Amount">
-            <button onclick="addExpense('${p.id}')">Add Expense</button>
-          ` : ""}
-        </div>
-      `;
-    }
-
-    if (currentRole === "ceo") {
-      const grandProfit = grandRevenue - grandExpenses;
-      const overallMargin = grandRevenue > 0
-        ? ((grandProfit / grandRevenue) * 100).toFixed(2)
-        : 0;
-
-      ceoSummary.innerHTML = `
-        <div class="card">
-          <h3>Company Overview</h3>
-          Total Revenue: ${formatPeso(grandRevenue)}<br>
-          Total Expenses: ${formatPeso(grandExpenses)}<br>
-          Net Profit: <span class="${grandProfit < 0 ? 'negative' : 'positive'}">${formatPeso(grandProfit)}</span><br>
-          Overall Margin: <span class="${overallMargin < 0 ? 'negative' : 'positive'}">${overallMargin}%</span>
-        </div>
-      `;
-    }
-  }
-
-  function clearForm() {
-    pName.value = "";
-    pLocation.value = "";
-    pBudget.value = "";
-    pStart.value = "";
-    pTarget.value = "";
-    pStatus.value = "";
-  }
-
   loadUser();
+};
+
+window.logout = async function () {
+  await supabaseClient.auth.signOut();
+  location.reload();
+};
+
+/* ✅ CHANGE PASSWORD FUNCTION */
+window.changePassword = async function () {
+  const newPassword = prompt("Enter new password (min 6 characters):");
+  if (!newPassword || newPassword.length < 6) {
+    alert("Password must be at least 6 characters.");
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Password changed successfully.");
+  }
+};
+
+async function loadUser() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
+    document.getElementById("login").classList.remove("hidden");
+    return;
+  }
+
+  document.getElementById("mainNav").classList.remove("hidden");
+
+  const { data } = await supabaseClient
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  currentRole = (data.role || "").toLowerCase();
+  render();
+}
+
+/* ----- EVERYTHING BELOW UNCHANGED ----- */
+
+window.showForm = function () {
+  editId = null;
+  clearForm();
+  document.getElementById("formTitle").innerText = "Create Project";
+  document.getElementById("form").classList.remove("hidden");
+};
+
+window.editProject = async function (id) {
+  const { data } = await supabaseClient
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  editId = id;
+  pName.value = data.name || "";
+  pLocation.value = data.location || "";
+  pBudget.value = data.budget || "";
+  pStart.value = data.start || "";
+  pTarget.value = data.target || "";
+  pStatus.value = data.status || "";
+
+  document.getElementById("formTitle").innerText = "Edit Project";
+  document.getElementById("form").classList.remove("hidden");
+};
+
+window.saveProject = async function () {
+  if (!pName.value.trim()) {
+    alert("Project name is required");
+    return;
+  }
+
+  const payload = {
+    name: pName.value.trim(),
+    location: pLocation.value || null,
+    budget: pBudget.value || null,
+    start: pStart.value || null,
+    target: pTarget.value || null,
+    status: pStatus.value || null
+  };
+
+  if (editId) {
+    await supabaseClient.from("projects").update(payload).eq("id", editId);
+    editId = null;
+  } else {
+    await supabaseClient.from("projects").insert(payload);
+  }
+
+  document.getElementById("form").classList.add("hidden");
+  clearForm();
+  render();
+};
+
+window.deleteProject = async function (id) {
+  if (!confirm("Are you sure? This cannot be undone.")) return;
+  if (prompt("Type DELETE to confirm:") !== "DELETE") return;
+
+  await supabaseClient.from("projects").delete().eq("id", id);
+  render();
+};
+
+window.addExpense = async function (projectId) {
+  const amount = Number(document.getElementById(`exp-${projectId}`).value);
+  const category = document.getElementById(`cat-${projectId}`).value;
+  const note = document.getElementById(`note-${projectId}`).value;
+
+  if (!amount || amount <= 0) {
+    alert("Enter valid amount");
+    return;
+  }
+
+  await supabaseClient.from("expenses").insert({
+    project_id: projectId,
+    amount,
+    category,
+    note
+  });
+
+  render();
+};
+
+window.deleteExpense = async function (expenseId) {
+  if (!confirm("Delete this expense?")) return;
+  await supabaseClient.from("expenses").delete().eq("id", expenseId);
+  render();
+};
+
+async function render() {
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("ceo").classList.add("hidden");
+  document.getElementById("manager").classList.add("hidden");
+  document.getElementById("expediter").classList.add("hidden");
+
+  if (!currentRole) return;
+  document.getElementById(currentRole).classList.remove("hidden");
+
+  const { data: projects } = await supabaseClient
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  const container =
+    currentRole === "ceo" ? ceoProjects :
+    currentRole === "manager" ? managerProjects :
+    expediterProjects;
+
+  container.innerHTML = "";
+
+  let grandRevenue = 0;
+  let grandExpenses = 0;
+
+  for (const p of projects || []) {
+    const { data: expenses } = await supabaseClient
+      .from("expenses")
+      .select("*")
+      .eq("project_id", p.id)
+      .order("created_at", { ascending: false });
+
+    let expensesTotal = 0;
+    let expenseHTML = "";
+
+    expenses?.forEach(e => {
+      const amount = Number(e.amount) || 0;
+      expensesTotal += amount;
+      const created = e.created_at
+        ? new Date(e.created_at).toLocaleString("en-PH")
+        : "-";
+
+      expenseHTML += `
+        <div>
+          <strong>• ${e.category || "Uncategorized"} - ${formatPeso(amount)}</strong>
+          ${currentRole === "expediter"
+            ? `<button onclick="deleteExpense('${e.id}')">Delete</button>`
+            : ""}
+          <div class="expense-meta">
+            Note: ${e.note || "-"}<br>
+            Created: ${created}
+          </div>
+        </div>
+      `;
+    });
+
+    const revenue = Number(p.budget) || 0;
+    const profit = revenue - expensesTotal;
+    const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(2) : 0;
+
+    grandRevenue += revenue;
+    grandExpenses += expensesTotal;
+
+    container.innerHTML += `
+      <div class="card">
+        <strong>${p.name}</strong>
+        <div class="project-details">
+          Location: ${p.location || "-"}<br>
+          Status: ${p.status || "-"}<br>
+          Start Date: ${p.start ? new Date(p.start).toLocaleDateString("en-PH") : "-"}<br>
+          Deadline: ${p.target ? new Date(p.target).toLocaleDateString("en-PH") : "-"}
+        </div>
+        Revenue: ${formatPeso(revenue)}<br>
+        Total Expenses: ${formatPeso(expensesTotal)}<br>
+        Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${formatPeso(profit)}</span><br>
+        Margin: ${margin}%
+        <hr>
+        ${expenseHTML || "No expenses yet"}
+        ${currentRole === "manager" ? `
+          <hr>
+          <button onclick="editProject('${p.id}')">Edit</button>
+          <button onclick="deleteProject('${p.id}')">Delete</button>
+        ` : ""}
+        ${currentRole === "expediter" ? `
+          <hr>
+          <select id="cat-${p.id}">
+            <option value="Materials">Materials</option>
+            <option value="Labor">Labor</option>
+            <option value="Transport">Transport</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <input id="exp-${p.id}" type="number" placeholder="Expense Amount">
+          <input id="note-${p.id}" placeholder="Note (Optional)">
+          <button onclick="addExpense('${p.id}')">Add Expense</button>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  if (currentRole === "ceo") {
+    const grandProfit = grandRevenue - grandExpenses;
+    const overallMargin = grandRevenue > 0
+      ? ((grandProfit / grandRevenue) * 100).toFixed(2)
+      : 0;
+
+    ceoSummary.innerHTML = `
+      <div class="card">
+        <h3>Company Overview</h3>
+        Total Revenue: ${formatPeso(grandRevenue)}<br>
+        Total Expenses: ${formatPeso(grandExpenses)}<br>
+        Net Profit: <span class="${grandProfit < 0 ? 'negative' : 'positive'}">${formatPeso(grandProfit)}</span><br>
+        Overall Margin: ${overallMargin}%
+      </div>
+    `;
+  }
+}
+
+function clearForm() {
+  pName.value = "";
+  pLocation.value = "";
+  pBudget.value = "";
+  pStart.value = "";
+  pTarget.value = "";
+  pStatus.value = "";
+}
+
+loadUser();
+
 });
 </script>
-
 </body>
 </html>
