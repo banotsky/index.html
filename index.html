@@ -47,12 +47,12 @@
 
 <div id="form" class="hidden">
   <h3 id="formTitle">Create Project</h3>
-  <input id="pName" placeholder="Project Name" />
-  <input id="pLocation" placeholder="Location" />
-  <input id="pBudget" type="number" placeholder="Budget" />
+  <input id="pName" placeholder="Project Name (Required)" />
+  <input id="pLocation" placeholder="Location (Optional)" />
+  <input id="pBudget" type="number" placeholder="Budget (Optional)" />
   <input id="pStart" type="date" />
   <input id="pTarget" type="date" />
-  <input id="pStatus" placeholder="Status" />
+  <input id="pStatus" placeholder="Status (Optional)" />
   <button onclick="saveProject()">Save</button>
 </div>
 
@@ -85,18 +85,24 @@ window.addEventListener("load", function () {
 
   window.saveProject = async function () {
 
+    if (!pName.value.trim()) {
+      alert("Project name is required");
+      return;
+    }
+
     const payload = {
-      name: pName.value,
-      location: pLocation.value,
-      budget: pBudget.value,
-      start: pStart.value,
-      target: pTarget.value,
-      status: pStatus.value
+      name: pName.value.trim()
     };
+
+    if (pLocation.value) payload.location = pLocation.value;
+    if (pBudget.value) payload.budget = pBudget.value;
+    if (pStart.value) payload.start = pStart.value;
+    if (pTarget.value) payload.target = pTarget.value;
+    if (pStatus.value) payload.status = pStatus.value;
 
     if (editId !== null) {
       await supabaseClient.from("projects").update(payload).eq("id", editId);
-      editId = null; // IMPORTANT FIX
+      editId = null;
     } else {
       await supabaseClient.from("projects").insert(payload);
     }
@@ -116,12 +122,12 @@ window.addEventListener("load", function () {
     editId = id;
 
     document.getElementById("formTitle").innerText = "Edit Project";
-    pName.value = data.name;
-    pLocation.value = data.location;
-    pBudget.value = data.budget;
-    pStart.value = data.start;
-    pTarget.value = data.target;
-    pStatus.value = data.status;
+    pName.value = data.name || "";
+    pLocation.value = data.location || "";
+    pBudget.value = data.budget || "";
+    pStart.value = data.start || "";
+    pTarget.value = data.target || "";
+    pStatus.value = data.status || "";
 
     document.getElementById("form").classList.remove("hidden");
   };
@@ -157,7 +163,7 @@ window.addEventListener("load", function () {
     if (role === "ceo") {
       ceoProjects.innerHTML = "";
       projects.forEach(p => {
-        ceoProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+        ceoProjects.innerHTML += `<div class="card">${p.name} - ${p.budget || 0}</div>`;
       });
     }
 
@@ -166,7 +172,7 @@ window.addEventListener("load", function () {
       projects.forEach(p => {
         managerProjects.innerHTML += `
           <div class="card">
-            ${p.name} - ${p.budget}<br>
+            ${p.name} - ${p.budget || 0}<br>
             <button onclick="editProject('${p.id}')">Edit</button>
             <button onclick="deleteProject('${p.id}')">Delete</button>
           </div>`;
@@ -184,12 +190,14 @@ window.addEventListener("load", function () {
         let total = 0;
         expenses?.forEach(e => total += Number(e.amount));
 
+        const budget = Number(p.budget) || 0;
+
         expediterProjects.innerHTML += `
           <div class="card">
             ${p.name}<br>
-            Budget: ${p.budget}<br>
+            Budget: ${budget}<br>
             Total: ${total}<br>
-            Remaining: ${p.budget - total}<br>
+            Remaining: ${budget - total}<br>
             <input id="exp-${p.id}" type="number" placeholder="Expense">
             <button onclick="addExpense('${p.id}')">Add</button>
           </div>`;
