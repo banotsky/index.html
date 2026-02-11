@@ -142,23 +142,17 @@ window.logout = async function () {
   location.reload();
 };
 
-/* ✅ CHANGE PASSWORD FUNCTION */
 window.changePassword = async function () {
   const newPassword = prompt("Enter new password (min 6 characters):");
   if (!newPassword || newPassword.length < 6) {
     alert("Password must be at least 6 characters.");
     return;
   }
-
   const { error } = await supabaseClient.auth.updateUser({
     password: newPassword
   });
-
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("Password changed successfully.");
-  }
+  if (error) alert(error.message);
+  else alert("Password changed successfully.");
 };
 
 async function loadUser() {
@@ -168,8 +162,6 @@ async function loadUser() {
     return;
   }
 
-  document.getElementById("mainNav").classList.remove("hidden");
-
   const { data } = await supabaseClient
     .from("profiles")
     .select("role")
@@ -177,10 +169,16 @@ async function loadUser() {
     .single();
 
   currentRole = (data.role || "").toLowerCase();
+
+  // ✅ WAREHOUSE AUTO REDIRECT
+  if (currentRole === "warehouse") {
+    window.location.href = "inventory.html";
+    return;
+  }
+
+  document.getElementById("mainNav").classList.remove("hidden");
   render();
 }
-
-/* ----- EVERYTHING BELOW UNCHANGED ----- */
 
 window.showForm = function () {
   editId = null;
@@ -238,7 +236,6 @@ window.saveProject = async function () {
 window.deleteProject = async function (id) {
   if (!confirm("Are you sure? This cannot be undone.")) return;
   if (prompt("Type DELETE to confirm:") !== "DELETE") return;
-
   await supabaseClient.from("projects").delete().eq("id", id);
   render();
 };
@@ -270,13 +267,15 @@ window.deleteExpense = async function (expenseId) {
 };
 
 async function render() {
+
   document.getElementById("login").classList.add("hidden");
   document.getElementById("ceo").classList.add("hidden");
   document.getElementById("manager").classList.add("hidden");
   document.getElementById("expediter").classList.add("hidden");
 
   if (!currentRole) return;
-  document.getElementById(currentRole).classList.remove("hidden");
+
+  document.getElementById(currentRole)?.classList.remove("hidden");
 
   const { data: projects } = await supabaseClient
     .from("projects")
@@ -294,6 +293,7 @@ async function render() {
   let grandExpenses = 0;
 
   for (const p of projects || []) {
+
     const { data: expenses } = await supabaseClient
       .from("expenses")
       .select("*")
@@ -306,9 +306,6 @@ async function render() {
     expenses?.forEach(e => {
       const amount = Number(e.amount) || 0;
       expensesTotal += amount;
-      const created = e.created_at
-        ? new Date(e.created_at).toLocaleString("en-PH")
-        : "-";
 
       expenseHTML += `
         <div>
@@ -317,8 +314,7 @@ async function render() {
             ? `<button onclick="deleteExpense('${e.id}')">Delete</button>`
             : ""}
           <div class="expense-meta">
-            Note: ${e.note || "-"}<br>
-            Created: ${created}
+            Note: ${e.note || "-"}
           </div>
         </div>
       `;
@@ -333,13 +329,7 @@ async function render() {
 
     container.innerHTML += `
       <div class="card">
-        <strong>${p.name}</strong>
-        <div class="project-details">
-          Location: ${p.location || "-"}<br>
-          Status: ${p.status || "-"}<br>
-          Start Date: ${p.start ? new Date(p.start).toLocaleDateString("en-PH") : "-"}<br>
-          Deadline: ${p.target ? new Date(p.target).toLocaleDateString("en-PH") : "-"}
-        </div>
+        <strong>${p.name}</strong><br>
         Revenue: ${formatPeso(revenue)}<br>
         Total Expenses: ${formatPeso(expensesTotal)}<br>
         Profit: <span class="${profit < 0 ? 'negative' : 'positive'}">${formatPeso(profit)}</span><br>
