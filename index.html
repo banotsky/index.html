@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- rebuild -->
 <html>
 <head>
   <meta charset="UTF-8" />
@@ -13,7 +12,7 @@
     .hidden { display:none; }
     .card { background:#fff; padding:15px; margin-bottom:10px; border-left:5px solid #0d6efd; }
     button { padding:8px 12px; margin:5px 0; }
-    input { width:100%; padding:6px; margin-bottom:8px; }
+    input, select { width:100%; padding:6px; margin-bottom:8px; }
   </style>
 </head>
 <body>
@@ -59,118 +58,120 @@
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
-  "https://qybnvniuifdbxyhyjarn.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
-);
+window.addEventListener("load", function () {
 
-function login() {
-  localStorage.setItem("role", document.getElementById("role").value);
-  render();
-}
+  const supabaseClient = window.supabase.createClient(
+    "https://qybnvniuifdbxyhyjarn.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Ym52bml1aWZkYnh5aHlqYXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDQ2MTQsImV4cCI6MjA4NjMyMDYxNH0.gr7LlCjcJjs57FiSSiwXY05YB8xZms-RG9iHvg98K1o"
+  );
 
-function logout() {
-  localStorage.removeItem("role");
-  location.reload();
-}
+  window.login = function () {
+    localStorage.setItem("role", document.getElementById("role").value);
+    render();
+  };
 
-function showForm() {
-  document.getElementById("form").classList.remove("hidden");
-}
+  window.logout = function () {
+    localStorage.removeItem("role");
+    location.reload();
+  };
 
-async function saveProject() {
-  const { error } = await supabase.from("projects").insert({
-    name: pName.value,
-    location: pLocation.value,
-    budget: pBudget.value,
-    start: pStart.value,
-    target: pTarget.value,
-    status: pStatus.value
-  });
+  window.showForm = function () {
+    document.getElementById("form").classList.remove("hidden");
+  };
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  document.getElementById("form").classList.add("hidden");
-  render();
-}
-
-async function getProjects() {
-  const { data } = await supabase.from("projects").select("*");
-  return data || [];
-}
-
-async function render() {
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("ceo").classList.add("hidden");
-  document.getElementById("manager").classList.add("hidden");
-  document.getElementById("expediter").classList.add("hidden");
-
-  const role = localStorage.getItem("role");
-
-  if (!role) {
-    document.getElementById("login").classList.remove("hidden");
-    return;
-  }
-
-  document.getElementById(role).classList.remove("hidden");
-
-  const projects = await getProjects();
-
-  if (role === "ceo") {
-    ceoProjects.innerHTML = "";
-    projects.forEach(p => {
-      ceoProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+  window.saveProject = async function () {
+    const { error } = await supabaseClient.from("projects").insert({
+      name: pName.value,
+      location: pLocation.value,
+      budget: pBudget.value,
+      start: pStart.value,
+      target: pTarget.value,
+      status: pStatus.value
     });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    document.getElementById("form").classList.add("hidden");
+    render();
+  };
+
+  async function getProjects() {
+    const { data } = await supabaseClient.from("projects").select("*");
+    return data || [];
   }
 
-  if (role === "manager") {
-    managerProjects.innerHTML = "";
-    projects.forEach(p => {
-      managerProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
-    });
-  }
+  async function render() {
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("ceo").classList.add("hidden");
+    document.getElementById("manager").classList.add("hidden");
+    document.getElementById("expediter").classList.add("hidden");
 
-  if (role === "expediter") {
-    expediterProjects.innerHTML = "";
-    for (const p of projects) {
-      const { data: expenses } = await supabase
-        .from("expenses")
-        .select("*")
-        .eq("project_id", p.id);
+    const role = localStorage.getItem("role");
 
-      let total = 0;
-      expenses?.forEach(e => total += Number(e.amount));
+    if (!role) {
+      document.getElementById("login").classList.remove("hidden");
+      return;
+    }
 
-      expediterProjects.innerHTML += `
-        <div class="card">
-          ${p.name}<br>
-          Budget: ${p.budget}<br>
-          Total: ${total}<br>
-          Remaining: ${p.budget - total}<br>
-          <input id="exp-${p.id}" type="number" placeholder="Expense">
-          <button onclick="addExpense('${p.id}')">Add</button>
-        </div>`;
+    document.getElementById(role).classList.remove("hidden");
+
+    const projects = await getProjects();
+
+    if (role === "ceo") {
+      ceoProjects.innerHTML = "";
+      projects.forEach(p => {
+        ceoProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+      });
+    }
+
+    if (role === "manager") {
+      managerProjects.innerHTML = "";
+      projects.forEach(p => {
+        managerProjects.innerHTML += `<div class="card">${p.name} - ${p.budget}</div>`;
+      });
+    }
+
+    if (role === "expediter") {
+      expediterProjects.innerHTML = "";
+      for (const p of projects) {
+        const { data: expenses } = await supabaseClient
+          .from("expenses")
+          .select("*")
+          .eq("project_id", p.id);
+
+        let total = 0;
+        expenses?.forEach(e => total += Number(e.amount));
+
+        expediterProjects.innerHTML += `
+          <div class="card">
+            ${p.name}<br>
+            Budget: ${p.budget}<br>
+            Total: ${total}<br>
+            Remaining: ${p.budget - total}<br>
+            <input id="exp-${p.id}" type="number" placeholder="Expense">
+            <button onclick="addExpense('${p.id}')">Add</button>
+          </div>`;
+      }
     }
   }
-}
 
-async function addExpense(projectId) {
-  const amount = Number(document.getElementById(`exp-${projectId}`).value);
+  window.addExpense = async function (projectId) {
+    const amount = Number(document.getElementById(`exp-${projectId}`).value);
+    if (!amount) return;
 
-  if (!amount) return;
+    await supabaseClient.from("expenses").insert({
+      project_id: projectId,
+      amount: amount
+    });
 
-  await supabase.from("expenses").insert({
-    project_id: projectId,
-    amount: amount
-  });
+    render();
+  };
 
   render();
-}
-
-render();
+});
 </script>
 
 </body>
